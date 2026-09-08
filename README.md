@@ -22,7 +22,7 @@ go up to 2 GB, 4 GB with Premium). Parallel up/download is built into gotd.
 
 ### Optional bot mode
 
-Set `BOT_TOKEN` and the service *also* runs the classic "DM a bot a link and get
+Set `BOT_TOKEN` and the service _also_ runs the classic "DM a bot a link and get
 the media back" flow, sharing the same download pipeline.
 
 ## Improvements over the Python version
@@ -43,19 +43,19 @@ the media back" flow, sharing the same download pipeline.
 
 All configuration is environment variables.
 
-| Variable | Required | Default | Notes |
-| --- | --- | --- | --- |
-| `API_ID`, `API_HASH` | yes | – | from <https://my.telegram.org> |
-| `SESSION_STRING` | no | – | optional seed, imported on first run; a Telethon `STRING_SESSION` also works. Normally you just run `gen-session` instead |
-| `CONTROL_CHAT` | no | `me` | `me` (Saved Messages), an `@username`, or a numeric chat id like `-1001234567890` |
-| `BOT_TOKEN` | no | – | set to also enable bot DM mode |
-| `TEMP_DIR` | no | OS temp dir | scratch space for downloads |
-| `CACHE_PATH` | no | `/data/cache.db` | bbolt database (session + peer store + dedup cache + forward progress) |
-| `HEALTH_ADDR` | no | `:8080` | health / metrics listener |
-| `HEALTH_FILE` | no | `/tmp/healthz` | touched for legacy healthchecks |
-| `LOG_LEVEL` | no | `info` | `debug` \| `info` \| `warn` \| `error` |
-| `LOG_FORMAT` | no | `text` | `text` \| `json` |
-| `FORWARD_FROM`, `FORWARD_TO` | yes (`forward`) | – | bulk-forward source / destination |
+| Variable                     | Required        | Default          | Notes                                                                                                                     |
+| ---------------------------- | --------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `API_ID`, `API_HASH`         | yes             | –                | from <https://my.telegram.org>                                                                                            |
+| `SESSION_STRING`             | no              | –                | optional seed, imported on first run; a Telethon `STRING_SESSION` also works. Normally you just run `gen-session` instead |
+| `CONTROL_CHAT`               | no              | `me`             | `me` (Saved Messages), an `@username`, or a numeric chat id like `-1001234567890`                                         |
+| `BOT_TOKEN`                  | no              | –                | set to also enable bot DM mode                                                                                            |
+| `TEMP_DIR`                   | no              | OS temp dir      | scratch space for downloads                                                                                               |
+| `CACHE_PATH`                 | no              | `/data/cache.db` | bbolt database (session + peer store + dedup cache + forward progress)                                                    |
+| `HEALTH_ADDR`                | no              | `:8080`          | health / metrics listener                                                                                                 |
+| `HEALTH_FILE`                | no              | `/tmp/healthz`   | touched for legacy healthchecks                                                                                           |
+| `LOG_LEVEL`                  | no              | `info`           | `debug` \| `info` \| `warn` \| `error`                                                                                    |
+| `LOG_FORMAT`                 | no              | `text`           | `text` \| `json`                                                                                                          |
+| `FORWARD_FROM`, `FORWARD_TO` | yes (`forward`) | –                | bulk-forward source / destination                                                                                         |
 
 ## Running
 
@@ -106,12 +106,12 @@ go run . forward
 
 ## Subcommands
 
-| Command | Purpose |
-| --- | --- |
-| `unrestrict-bot run` | start the service; logs in on first start if needed (default) |
-| `unrestrict-bot gen-session` | log in and print a portable `SESSION_STRING`, then exit |
-| `unrestrict-bot forward` | one-shot bulk media forward |
-| `unrestrict-bot healthcheck` | probe local `/healthz`, exit non-zero if unhealthy (container `HEALTHCHECK`) |
+| Command                      | Purpose                                                                  |
+| ---------------------------- | ------------------------------------------------------------------------ |
+| `unrestrict-bot run`         | start the service; logs in on first start if needed (default)            |
+| `unrestrict-bot gen-session` | log in and print a portable `SESSION_STRING`, then exit                  |
+| `unrestrict-bot forward`     | one-shot bulk media forward                                              |
+| `unrestrict-bot healthcheck` | probe local `/healthz`, exit non-zero if unhealthy (compose healthcheck) |
 
 ## Development
 
@@ -119,3 +119,9 @@ go run . forward
 go test ./...
 go vet ./...
 ```
+
+## Disclaimer
+
+This software was originally written in Python, it had some not so well implemented hacks to speed up downloads, bypass limits and flood, etc. I used Claude to rewrite the software in Go and made some changes to how it behaves like removing telegram-bot-api dependency, improving auth flow, removing the requirement of a bot frontend and many other minor decisions to improve the QOL that this software was lacking.
+
+While AI was used, everything was reviwed, tested and validated, some parts even manually rewriten to improve performance and fix gaps that the AI ignored. This is not a vibe coded project.
