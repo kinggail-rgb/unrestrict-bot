@@ -1,42 +1,54 @@
+# Podman / Docker Compose. The Go build speaks MTProto directly, so there is no
+# telegram-bot-api sidecar and no API_HOST any more.
+#
+# First start (once, interactively) to log in; the session is saved to /data:
+#   podman compose run --rm -it telegram-bot run    # Ctrl-C after "user client ready"
+# Then:
+#   podman compose up --build -d      (or: podman-compose / docker compose)
+
 services:
-  telegram-bot-api:
-    container_name: telegram-bot-api
-    image: aiogram/telegram-bot-api:latest
+  gluetun:
+    image: docker.io/qmcgaw/gluetun:latest
+    container_name: gluetun
     restart: unless-stopped
-    environment:
-      TELEGRAM_API_ID: ${API_ID}
-      TELEGRAM_API_HASH: ${API_HASH}
-    volumes:
-      - telegram-bot-api-data:/var/lib/telegram-bot-api
-    ports:
-      - 8082:8081
-    networks:
-      - tg-forwarder_default
-  
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    env_file: .env          # VPN_SERVICE_PROVIDER, VPN_TYPE, WIREGUARD_* / OPENVPN_*, etc.
+    # Ports for anything sharing this netns must be published here, not on telegram-bot:
+    # ports:
+    #   - "8080:8080"        # unrestrict-bot /healthz + /metrics
+
   telegram-bot:
+    image: localhost/unrestrict-bot:latest
     container_name: telegram-bot
     restart: unless-stopped
-    build: .
-    healthcheck:
-      test: ["CMD-SHELL", "/bin/sh -c '[ $(find /tmp/healthz -mmin -1 | wc -l) -eq 1 ] || false'" ]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["run"]
+    network_mode: "service:gluetun"
+    depends_on:
+      gluetun:
+        condition: service_started
+    env_file: .env          # API_ID, API_HASH, CONTROL_CHAT, [SESSION_STRING], [BOT_TOKEN]
     environment:
-      API_HASH: ${API_HASH}
-      API_ID: ${API_ID}
-      SESSION_STRING: ${SESSION_STRING}
-      BOT_TOKEN: ${BOT_TOKEN}
-      API_HOST: "http://telegram-bot-api:8081"
-      # API_HOST: "http://127.0.0.1:8081"
-    # depends_on:
-    #   - telegram-bot-api
-    networks:
-      - tg-forwarder_default
-    # extra_hosts:
-    #   - "host.docker.internal:host-gateway"
+      CACHE_PATH: /data/cache.db
+      HEALTH_ADDR: ":8080"
+      LOG_FORMAT: json
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/unrestrict-bot", "healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    # NOTE: Podman without systemd (e.g. Artix) never runs scheduled healthchecks,
+    # so `podman ps` shows "(starting)" forever. That is cosmetic: the app is fine,
+    # `podman healthcheck run telegram-bot` works on demand, and restart:
+    # unless-stopped already handles crashes.
+    volumes:
+      - unrestrict-bot-data:/data
 
 volumes:
-  telegram-bot-api-data:
-
-networks:
-  tg-forwarder_default:
-    driver: bridge
-    name: tg-forwarder_default
+  unrestrict-bot-data:
